@@ -1,0 +1,24 @@
+---
+# - `derivedRoles` field order
+description: |-
+  Common dynamic roles used within the Apatr app
+apiVersion: "api.cerbos.dev/v1"
+derivedRoles:
+  variables:
+    local: 
+      flagged_resource: request.resource.attr.flagged
+    import: 
+      - apatr_common_variables
+  name: apatr_common_roles 
+  definitions:
+    - name: owner 
+      condition: 
+        match:
+          expr: request.resource.attr.owner == request.principal.id
+      parentRoles: ["user"] 
+
+    - parentRoles: ["moderator"]
+      name: abuse_moderator
+      condition:
+        match:
+          expr: V.flagged_resource == true

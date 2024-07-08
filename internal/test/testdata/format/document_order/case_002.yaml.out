@@ -1,0 +1,14 @@
+# - replace single quotes with double quotes
+apiVersion: "api.cerbos.dev/v1"
+description: "Common dynamic roles used within the Apatr app"
+derivedRoles:
+  name: apatr_common_roles
+  variables:
+    local:
+      flagged_resource: "request.resource.attr.flagged"
+  definitions:
+    - name: "owner"
+      parentRoles: ["user"]
+      condition:
+        match:
+          expr: "request.resource.attr.owner == request.principal.id"
