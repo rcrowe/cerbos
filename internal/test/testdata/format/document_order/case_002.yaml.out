@@ -1,4 +1,5 @@
 # - replace single quotes with double quotes
+# - CEL formatted variables & expressions
 apiVersion: "api.cerbos.dev/v1"
 description: "Common dynamic roles used within the Apatr app"
 derivedRoles:
@@ -6,6 +7,7 @@ derivedRoles:
   variables:
     local:
       flagged_resource: "request.resource.attr.flagged"
+      env: "development"
   definitions:
     - name: "owner"
       parentRoles: ["user"]

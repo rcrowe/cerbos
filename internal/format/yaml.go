@@ -32,7 +32,9 @@ func YAML(input []byte) ([]byte, error) {
 
 	for _, doc := range file.Docs {
 		for _, f := range formatters {
-			f(doc)
+			if err := f(doc); err != nil {
+				return nil, err
+			}
 		}
 	}
 
@@ -66,23 +68,53 @@ func formatVariables() formattter {
 	}
 
 	return func(doc *ast.DocumentNode) error {
-		document, ok := doc.Body.(*ast.MappingNode)
+		documentNode, ok := doc.Body.(*ast.MappingNode)
 		if !ok {
 			return nil
 		}
 
 		for _, search := range searchFields {
-			searchNode, ok := getMapField(document, search)
-			if !ok {
+			searchNode, searchOK := getField(documentNode, search)
+			if !searchOK {
 				continue
 			}
-			variablesNode, ok := getMapField(searchNode, "variables")
-			if !ok {
-				return nil
+
+			variablesNode, variablesOK := getField(searchNode, "variables")
+			if !variablesOK {
+				continue
 			}
 
 			// order `{search}.variables`
-			remapFields(variablesNode, variablesFieldOrder)
+			orderFields(variablesNode, variablesFieldOrder)
+
+			// format `{search}.variables.local` expressions
+			localVariablesNode, localVariablesOK := getField(variablesNode, "local")
+			if !localVariablesOK {
+				continue
+			}
+
+			switch rootNode := localVariablesNode.(type) {
+			case *ast.MappingNode:
+				for _, v := range rootNode.Values {
+					if exprNode, ok := v.Value.(*ast.StringNode); ok {
+						expr, err := parseCEL(exprNode.Value)
+						if err != nil {
+							return err
+						}
+						exprNode.Value = expr
+					}
+				}
+			case *ast.MappingValueNode:
+				if exprNode, ok := rootNode.Value.(*ast.StringNode); ok {
+					expr, err := parseCEL(exprNode.Value)
+					if err != nil {
+						return err
+					}
+					exprNode.Value = expr
+				}
+			default:
+				continue
+			}
 		}
 		return nil
 	}

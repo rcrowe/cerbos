@@ -1,12 +1,13 @@
 ---
 # - `derivedRoles` field order
+# - CEL formatted variables & expressions
 description: |-
   Common dynamic roles used within the Apatr app
 apiVersion: "api.cerbos.dev/v1"
 derivedRoles:
   variables:
     local: 
-      flagged_resource: request.resource.attr.flagged
+      flagged_resource: (request.resource.attr.flagged)
     import: 
       - apatr_common_variables
   name: apatr_common_roles 
@@ -21,4 +22,4 @@ derivedRoles:
       name: abuse_moderator
       condition:
         match:
-          expr: V.flagged_resource == true
+          expr: (V.flagged_resource == true)

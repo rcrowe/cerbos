@@ -1,39 +1,36 @@
 package format
 
 import (
+	"fmt"
+
 	"github.com/goccy/go-yaml/ast"
+	cel_common "github.com/google/cel-go/common"
+	cel_parser "github.com/google/cel-go/parser"
 )
 
-func eachMapSequence(node *ast.MappingNode, field string, cb func(node *ast.MappingNode)) {
-	for _, node := range node.Values {
-		if node.Key.String() == field {
-			sequenceNode, ok := node.Value.(*ast.SequenceNode)
-			if !ok {
-				continue
-			}
-
-			for _, sequenceNode := range sequenceNode.Values {
-				mappingNode, ok := sequenceNode.(*ast.MappingNode)
-				if !ok {
-					continue
-				}
-				cb(mappingNode)
+func getField(node ast.Node, field string) (ast.Node, bool) {
+	switch rootNode := node.(type) {
+	case *ast.MappingNode:
+		for _, v := range rootNode.Values {
+			if v.Key.String() == field {
+				return v.Value, true
 			}
 		}
-	}
-}
-
-func getMapField(node *ast.MappingNode, field string) (*ast.MappingNode, bool) {
-	for _, node := range node.Values {
-		if node.Key.String() == field {
-			mappingNode, ok := node.Value.(*ast.MappingNode)
-			return mappingNode, ok
+	case *ast.MappingValueNode:
+		if rootNode.Key.String() == field {
+			return rootNode.Value, true
 		}
 	}
+
 	return nil, false
 }
 
-func remapFields(node *ast.MappingNode, order []string) {
+func orderFields(n ast.Node, order []string) {
+	node, ok := n.(*ast.MappingNode)
+	if !ok {
+		return
+	}
+
 	orderedValues := make([]*ast.MappingValueNode, len(order))
 	otherValues := make([]*ast.MappingValueNode, 0, len(node.Values))
 
@@ -58,4 +55,17 @@ func remapFields(node *ast.MappingNode, order []string) {
 		}
 	}
 	node.Values = append(mergedValues, otherValues...)
+}
+
+func parseCEL(expr string) (string, error) {
+	cel, err := cel_parser.NewParser()
+	if err != nil {
+		return "", fmt.Errorf("cel parser: %w", err)
+	}
+
+	ast, issues := cel.Parse(cel_common.NewStringSource(expr, "<expr>"))
+	if len(issues.GetErrors()) > 0 {
+		return "", fmt.Errorf("cel parser: %s", issues.ToDisplayString())
+	}
+	return cel_parser.Unparse(ast.Expr(), ast.SourceInfo())
 }

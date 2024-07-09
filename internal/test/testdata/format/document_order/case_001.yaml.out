@@ -1,5 +1,6 @@
 ---
 # - `derivedRoles` field order
+# - CEL formatted variables & expressions
 apiVersion: "api.cerbos.dev/v1"
 description: |-
   Common dynamic roles used within the Apatr app
